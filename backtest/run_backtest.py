@@ -195,11 +195,13 @@ def run_backtest(
 
 def _fetch_price_frames(tickers: set[str], start: date, end: date) -> dict[str, pd.DataFrame]:
     """Pull daily bars from Alpaca for the backtest window."""
+    from alpaca.data.enums import DataFeed
     from alpaca.data.historical import StockHistoricalDataClient
     from alpaca.data.requests import StockBarsRequest
     from alpaca.data.timeframe import TimeFrame
 
     s = get_settings()
+    feed = {"iex": DataFeed.IEX, "sip": DataFeed.SIP}.get(s.alpaca_data_feed.lower(), DataFeed.IEX)
     client = StockHistoricalDataClient(api_key=s.alpaca_api_key, secret_key=s.alpaca_secret_key)
     frames: dict[str, pd.DataFrame] = {}
     for ticker in tickers:
@@ -208,6 +210,7 @@ def _fetch_price_frames(tickers: set[str], start: date, end: date) -> dict[str, 
             timeframe=TimeFrame.Day,
             start=datetime(start.year, start.month, start.day, tzinfo=UTC),
             end=datetime(end.year, end.month, end.day, tzinfo=UTC),
+            feed=feed,
         )
         try:
             bars = client.get_stock_bars(req)

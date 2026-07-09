@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     alpaca_api_key: str = ""
     alpaca_secret_key: str = ""
     alpaca_base_url: str = PAPER_BASE_URL
+    # Market-data feed. Free/paper plans only include "iex"; "sip" needs a paid
+    # subscription. Defaults to iex so the liquidity screen works out of the box.
+    alpaca_data_feed: str = "iex"
 
     # --- Safety gates --------------------------------------------------------
     dry_run: bool = True

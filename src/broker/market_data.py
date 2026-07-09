@@ -36,13 +36,25 @@ class MarketData:
             api_key=self.settings.alpaca_api_key,
             secret_key=self.settings.alpaca_secret_key,
         )
+        self._feed = self._resolve_feed(self.settings.alpaca_data_feed)
+
+    @staticmethod
+    def _resolve_feed(name: str):
+        """Map the configured feed name to alpaca-py's DataFeed enum.
+
+        Free/paper plans only include IEX; SIP requires a paid subscription and
+        otherwise fails with "subscription does not permit querying SIP data".
+        """
+        from alpaca.data.enums import DataFeed
+
+        return {"iex": DataFeed.IEX, "sip": DataFeed.SIP}.get(name.lower(), DataFeed.IEX)
 
     def latest_price(self, ticker: str) -> float | None:
         """Latest trade price, or None if unavailable."""
         from alpaca.data.requests import StockLatestTradeRequest
 
         try:
-            req = StockLatestTradeRequest(symbol_or_symbols=ticker)
+            req = StockLatestTradeRequest(symbol_or_symbols=ticker, feed=self._feed)
             resp = self._client.get_stock_latest_trade(req)
             trade = resp.get(ticker)
             return float(trade.price) if trade else None
@@ -67,6 +79,7 @@ class MarketData:
                 timeframe=TimeFrame.Day,
                 start=start,
                 end=end,
+                feed=self._feed,
             )
             bars = self._client.get_stock_bars(req)
             data = bars.data.get(ticker, []) if hasattr(bars, "data") else []
