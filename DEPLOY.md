@@ -63,6 +63,76 @@ day-2 operations (flipping to real paper orders, upgrades, gotchas).
 
 ---
 
+## Quickstart: Google Cloud "Always Free" e2-micro ($0)
+
+Google Cloud's Always Free tier includes one `e2-micro` VM that is free **forever**
+(not a 12-month trial). It's x86, but the Docker image is multi-arch so nothing
+changes. Two hard rules to stay in the free tier:
+
+- **Machine type must be `e2-micro`**, and
+- **the VM must live in one of these three regions:** `us-west1` (Oregon),
+  `us-central1` (Iowa), or `us-east1` (South Carolina).
+
+Only **one** free e2-micro per billing account across those regions. Use a
+**standard** persistent disk (up to 30 GB is free; SSD/balanced disks are not).
+
+### A. Create the VM (Console)
+
+1. Sign up / sign in at <https://cloud.google.com/free> → open the **Console**.
+2. Create/select a project, and enable billing (a card is required; Always-Free
+   resources are not charged).
+3. **Compute Engine → VM instances → Create instance.**
+4. **Name:** `trader`.
+5. **Region:** one of `us-west1` / `us-central1` / `us-east1`. **Zone:** any.
+6. **Machine configuration:** series **E2**, machine type **`e2-micro`**.
+7. **Boot disk → Change:** OS **Ubuntu**, version **Ubuntu 22.04 LTS**, boot disk
+   type **Standard persistent disk**, size **30 GB**.
+8. Leave firewall unchecked — the bot only makes **outbound** calls, so you do
+   **not** need to allow HTTP/HTTPS. SSH works through the console.
+9. **Create.**
+
+> **CLI alternative** (if you have `gcloud`):
+> ```bash
+> gcloud compute instances create trader \
+>   --zone=us-central1-a --machine-type=e2-micro \
+>   --image-family=ubuntu-2204-lts --image-project=ubuntu-os-cloud \
+>   --boot-disk-size=30GB --boot-disk-type=pd-standard
+> ```
+
+### B. Deploy on it
+
+Click **SSH** next to the instance in the Console (opens a browser terminal), or
+`gcloud compute ssh trader --zone=<your-zone>`. Then:
+
+```bash
+# Docker
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER && newgrp docker
+
+# Code
+git clone <your repo url> trader && cd trader
+git checkout claude/insider-copy-trading-bot-7f125s
+
+# Secrets (never committed) — fill in SEC_USER_AGENT + your PAPER keys
+cp .env.example .env && nano .env
+
+# Smoke test, then launch 24/7
+docker compose run --rm trader account
+docker compose up -d --build
+docker compose logs -f
+```
+
+### C. Stay inside the free tier
+
+- **Don't** upgrade the machine type or switch the disk to SSD/balanced.
+- Free egress is **1 GB/month**. This bot is light (SEC downloads are *inbound*
+  and free; outbound is just small API calls + Slack pings), so you're fine — but
+  don't co-host anything chatty on the same VM.
+- Set a **Budget alert** at $1 (Billing → Budgets & alerts) so you're emailed if
+  anything ever starts to cost money.
+
+---
+
 ## 1. Pick a host
 
 Anything that stays on works. Cheapest sensible options (~$4–6/mo):
