@@ -1,0 +1,5 @@
+filed_date,ticker,owner,shares,price,is_officer,is_director,is_ten_pct
+2024-01-05,MASS,Insider A,5000,12.00,True,False,False
+2024-01-08,AXR,Insider B,4500,15.00,False,True,False
+2024-01-08,AXR,Insider C,300,15.10,True,False,False
+2024-02-01,GMETA,Insider D,2000,30.00,False,False,True

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "insider-copy-trader"
+version = "0.1.0"
+description = "Paper-trading bot that copies SEC Form 4 open-market insider buys into an Alpaca paper account."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "alpaca-py>=0.33,<1.0",
+    "httpx>=0.27,<1.0",
+    "pydantic>=2.7,<3.0",
+    "pydantic-settings>=2.3,<3.0",
+    "APScheduler>=3.10,<4.0",
+    "pandas>=2.2,<3.0",
+    "structlog>=24.1",
+    "python-dotenv>=1.0",
+    "tenacity>=8.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "ruff>=0.5",
+    "black>=24.4",
+]
+
+[project.scripts]
+trader = "src.main:cli"
+
+[tool.setuptools.packages.find]
+include = ["config*", "src*", "backtest*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4"]
+# E501 (line length) is handled by black; ignore in ruff to avoid double-reporting.
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"

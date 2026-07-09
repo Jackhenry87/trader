@@ -1,0 +1,25 @@
+# Local packaging for the insider-copy paper trading bot.
+# Build:  docker compose build
+# Run:    docker compose up          (starts the scheduler)
+# One-off: docker compose run --rm trader signals --date 2024-05-10
+#
+# Secrets come from .env (git-ignored). Ships DRY_RUN=true and live disabled.
+
+services:
+  trader:
+    build: .
+    image: insider-copy-trader:latest
+    container_name: insider-copy-trader
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Belt-and-suspenders defaults; .env overrides these. Live stays off.
+      DRY_RUN: "${DRY_RUN:-true}"
+      ALLOW_LIVE: "${ALLOW_LIVE:-false}"
+      CONFIRM_LIVE: "${CONFIRM_LIVE:-false}"
+      DB_PATH: "/app/data/trader.db"
+    volumes:
+      # Persist SQLite state across restarts.
+      - ./data:/app/data
+    # The scheduler is a long-running foreground process (see Dockerfile CMD).
