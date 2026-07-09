@@ -208,6 +208,17 @@ Every meaningful event is a structured JSON log line. Notable events (fills,
 exits, guard trips, exceptions) additionally push to Slack if
 `SLACK_WEBHOOK_URL` is set; otherwise notifications fall back to log-only.
 
+### Alpaca Request IDs
+
+Every Alpaca Trading API response carries a unique `X-Request-ID` header, and
+Alpaca recommends persisting recent ones because they identify the call in their
+systems and **can't be looked up after the fact**. The broker attaches a hook to
+alpaca-py's HTTP session so every call's Request ID is captured into a
+thread-safe ring buffer and logged structured. The most recent ID is included in
+`order_submitted` / `position_closed` logs, printed by `python -m src.main
+account`, and attached to `order_submit_failed` / `position_close_failed` errors
+— so when you file an Alpaca support ticket you have the Request ID ready.
+
 ## Docker
 
 ```bash

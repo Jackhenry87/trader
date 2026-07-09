@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from config.settings import Settings, get_settings
+from src.broker.request_id import RequestIdTracker, attach_request_id_capture
 from src.notify.notifier import get_logger
 from src.risk.guards import AccountSnapshot, assert_paper
 
@@ -47,9 +48,20 @@ class AlpacaBroker:
             secret_key=self.settings.alpaca_secret_key,
             paper=paper,
         )
+        # Capture Alpaca's X-Request-ID on every call so we can quote it in
+        # support tickets (Alpaca can't look these up after the fact).
+        self.request_ids = RequestIdTracker()
+        session = getattr(self._client, "_session", None)
+        if session is not None:
+            attach_request_id_capture(session, self.request_ids, _log)
         # Belt and suspenders: assert the resolved account is paper.
         self._assert_paper_account(paper)
         _log.info("alpaca_connected", paper=paper, base_url=self.settings.alpaca_base_url)
+
+    @property
+    def last_request_id(self) -> str | None:
+        """Most recent Alpaca X-Request-ID — include this in support tickets."""
+        return self.request_ids.last
 
     def _assert_paper_account(self, paper_flag: bool) -> None:
         assert_paper(is_paper=paper_flag, live_enabled=self.settings.live_enabled)
@@ -112,7 +124,18 @@ class AlpacaBroker:
             side=OrderSide.BUY,
             time_in_force=TimeInForce.DAY,
         )
-        order = self._client.submit_order(req)
+        try:
+            order = self._client.submit_order(req)
+        except Exception as exc:  # noqa: BLE001 — annotate with Request ID, re-raise.
+            _log.error(
+                "order_submit_failed",
+                ticker=ticker,
+                notional=round(notional, 2),
+                side="buy",
+                error=str(exc),
+                request_id=self.last_request_id,
+            )
+            raise
         _log.info(
             "order_submitted",
             ticker=ticker,
@@ -120,6 +143,7 @@ class AlpacaBroker:
             side="buy",
             order_id=str(order.id),
             status=str(order.status),
+            request_id=self.last_request_id,
         )
         return OrderResult(ticker, "buy", str(order.id), notional, None, str(order.status), False)
 
@@ -129,12 +153,23 @@ class AlpacaBroker:
             _log.info("dry_run_would_sell", ticker=ticker, reason=reason, side="sell")
             return OrderResult(ticker, "sell", None, None, None, "dry_run", True)
 
-        order = self._client.close_position(ticker)
+        try:
+            order = self._client.close_position(ticker)
+        except Exception as exc:  # noqa: BLE001 — annotate with Request ID, re-raise.
+            _log.error(
+                "position_close_failed",
+                ticker=ticker,
+                reason=reason,
+                error=str(exc),
+                request_id=self.last_request_id,
+            )
+            raise
         _log.info(
             "position_closed",
             ticker=ticker,
             reason=reason,
             order_id=str(order.id),
             status=str(order.status),
+            request_id=self.last_request_id,
         )
         return OrderResult(ticker, "sell", str(order.id), None, None, str(order.status), False)

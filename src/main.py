@@ -77,6 +77,8 @@ def cmd_account(args: argparse.Namespace, settings: Settings) -> None:
     market = MarketData(settings)
     price = market.latest_price(args.ticker)
     print(f"\n  test quote {args.ticker}: ${price}")
+    # Alpaca's X-Request-ID for the last call — quote this in any support ticket.
+    print(f"  last Alpaca request id: {broker.last_request_id}")
     print()
 
 
