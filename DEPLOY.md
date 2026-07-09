@@ -8,6 +8,61 @@ cloud dev container. Below is the minimal, reliable way to run it unattended.
 > without `ALLOW_LIVE=true` **and** `CONFIRM_LIVE=true`, which this repo does not
 > ship. "Going 24/7" just means the paper bot runs on a schedule reliably.
 
+---
+
+## Quickstart: Oracle Cloud "Always Free" ARM (recommended, $0)
+
+Oracle's Always Free tier includes an Ampere A1 (ARM64) VM that costs nothing,
+forever, and is far more than this bot needs. The Docker image is multi-arch, so
+it runs on ARM with no changes.
+
+### A. Create the VM
+
+1. Sign up at <https://cloud.oracle.com> (a card is required for identity
+   verification, but Always Free resources are never charged).
+2. **Compute → Instances → Create instance.**
+3. **Image:** Canonical **Ubuntu 22.04** (or 24.04).
+4. **Shape:** click *Change shape* → **Ampere** → `VM.Standard.A1.Flex`. Set
+   **1 OCPU / 6 GB RAM** (well within the always-free 4 OCPU / 24 GB allowance).
+5. **SSH keys:** upload your public key (or let Oracle generate one and download
+   the private key).
+6. Leave networking at defaults and **Create**. Note the instance's **public IP**.
+
+> **Capacity tip:** Always-Free ARM is popular and a region can return
+> "out of host capacity." If so, try a different Availability Domain, pick a less
+> busy home region at signup, or retry later — it frees up.
+
+> **No inbound ports needed.** The bot only makes *outbound* calls (SEC + Alpaca),
+> so you don't have to open any ingress rules. SSH (22) is open by default.
+
+### B. Deploy on it
+
+SSH in (`ssh ubuntu@<public-ip>`), then:
+
+```bash
+# Docker
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER && newgrp docker
+
+# Code
+git clone <your repo url> trader && cd trader
+git checkout claude/insider-copy-trading-bot-7f125s
+
+# Secrets (never committed) — fill in SEC_USER_AGENT + your PAPER keys
+cp .env.example .env && nano .env
+
+# Smoke test, then launch 24/7
+docker compose run --rm trader account
+docker compose up -d --build
+docker compose logs -f
+```
+
+That's it — it now runs unattended on America/New_York time and restarts on
+reboot. The rest of this document is the generic version of the same steps plus
+day-2 operations (flipping to real paper orders, upgrades, gotchas).
+
+---
+
 ## 1. Pick a host
 
 Anything that stays on works. Cheapest sensible options (~$4–6/mo):
