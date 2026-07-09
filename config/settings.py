@@ -75,6 +75,14 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     schedule_tz: str = "America/New_York"
 
+    # --- Liveness / health ---------------------------------------------------
+    # The scheduler touches this file every minute; the Docker healthcheck fails
+    # if it goes staler than heartbeat_max_age_seconds.
+    heartbeat_path: str = "data/heartbeat"
+    heartbeat_max_age_seconds: int = 180
+    # Hour (in schedule_tz) for the daily "still alive" Slack ping / dead-man's switch.
+    daily_heartbeat_hour: int = 8
+
     @field_validator("alpaca_base_url")
     @classmethod
     def _strip_trailing_slash(cls, v: str) -> str:

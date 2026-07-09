@@ -146,9 +146,12 @@ def cmd_post_open(args: argparse.Namespace, settings: Settings) -> None:
 # Scheduler
 # --------------------------------------------------------------------------- #
 def cmd_run(args: argparse.Namespace, settings: Settings) -> None:
-    """Start APScheduler with post-close and post-open jobs (weekdays)."""
+    """Start APScheduler with post-close, post-open, and heartbeat jobs."""
     from apscheduler.schedulers.blocking import BlockingScheduler
     from apscheduler.triggers.cron import CronTrigger
+    from apscheduler.triggers.interval import IntervalTrigger
+
+    from src.health import write_heartbeat
 
     tz = settings.schedule_tz
     scheduler = BlockingScheduler(timezone=tz)
@@ -158,6 +161,16 @@ def cmd_run(args: argparse.Namespace, settings: Settings) -> None:
 
     def _post_open_job() -> None:
         _safe_run(lambda: cmd_post_open(_ns(force=False), settings), "post_open")
+
+    def _heartbeat_job() -> None:
+        # Liveness marker for the Docker healthcheck. Best-effort; never raises.
+        try:
+            write_heartbeat(settings.heartbeat_path)
+        except Exception as exc:  # noqa: BLE001
+            _log.warning("heartbeat_write_failed", error=str(exc))
+
+    def _daily_alive_job() -> None:
+        _safe_run(lambda: _daily_alive_ping(settings), "daily_heartbeat")
 
     # ~4:30pm ET after close, Mon–Fri. Holidays are skipped via Alpaca calendar
     # inside the placement path (post-open checks is_market_open).
@@ -174,14 +187,64 @@ def cmd_run(args: argparse.Namespace, settings: Settings) -> None:
         id="post_open",
         misfire_grace_time=3600,
     )
+    # Liveness heartbeat every minute (drives the Docker healthcheck).
+    scheduler.add_job(_heartbeat_job, IntervalTrigger(seconds=60), id="heartbeat")
+    # Daily "still alive" Slack ping — a dead-man's switch. Runs every day so you
+    # notice weekends/holidays too; absence of this ping means the bot is down.
+    scheduler.add_job(
+        _daily_alive_job,
+        CronTrigger(hour=settings.daily_heartbeat_hour, minute=0, timezone=tz),
+        id="daily_heartbeat",
+        misfire_grace_time=3600,
+    )
 
+    # Write an immediate heartbeat so the healthcheck passes during startup.
+    _heartbeat_job()
     notify(
-        "scheduler_started", level="info", tz=tz, dry_run=settings.dry_run, paper=settings.is_paper
+        "scheduler_started",
+        level="info",
+        slack=True,
+        tz=tz,
+        dry_run=settings.dry_run,
+        paper=settings.is_paper,
     )
     try:
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):
-        notify("scheduler_stopped", level="info")
+        notify("scheduler_stopped", level="info", slack=True)
+
+
+def _daily_alive_ping(settings: Settings) -> None:
+    """Send a daily liveness ping with a quick account summary (dead-man's switch)."""
+    from src.broker.alpaca_client import AlpacaBroker
+
+    broker = AlpacaBroker(settings)
+    snap = broker.snapshot()
+    notify(
+        "daily_heartbeat",
+        level="info",
+        slack=True,
+        equity=round(snap.equity, 2),
+        cash=round(snap.cash, 2),
+        open_positions=snap.open_positions,
+        dry_run=settings.dry_run,
+    )
+
+
+def cmd_health(args: argparse.Namespace, settings: Settings) -> None:
+    """Exit 0 if the scheduler heartbeat is fresh, else 1 (for Docker HEALTHCHECK)."""
+    import sys
+
+    from src.health import heartbeat_age_seconds, is_healthy
+
+    age = heartbeat_age_seconds(settings.heartbeat_path)
+    healthy = is_healthy(settings.heartbeat_path, settings.heartbeat_max_age_seconds)
+    print(
+        f"health: {'OK' if healthy else 'STALE'} "
+        f"age={'n/a' if age is None else round(age)}s "
+        f"max={settings.heartbeat_max_age_seconds}s path={settings.heartbeat_path}"
+    )
+    sys.exit(0 if healthy else 1)
 
 
 # --------------------------------------------------------------------------- #
@@ -238,6 +301,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_run = sub.add_parser("run", help="Start the APScheduler loop.")
     p_run.set_defaults(func=cmd_run)
+
+    p_health = sub.add_parser("health", help="Exit 0 if scheduler heartbeat is fresh (for Docker).")
+    p_health.set_defaults(func=cmd_health)
     return parser
 
 

@@ -69,20 +69,21 @@ _LEVEL_TO_INT = {
 }
 
 
-def notify(event: str, level: str = "info", **fields: Any) -> None:
+def notify(event: str, level: str = "info", slack: bool = False, **fields: Any) -> None:
     """Log a structured event and, for notable levels, push to Slack.
 
     ``level`` is one of debug/info/warning/error/critical. Anything at warning
-    or above is also sent to the Slack sink (if configured). This function never
-    raises — a failed notification is logged and swallowed so it can't take down
-    a trading job.
+    or above is sent to the Slack sink (if configured); pass ``slack=True`` to
+    force a push at info level too (used for startup + daily heartbeat). This
+    function never raises — a failed notification is logged and swallowed so it
+    can't take down a trading job.
     """
     log = get_logger()
     lvl = level.lower()
     log_method = getattr(log, lvl, log.info)
     log_method(event, **fields)
 
-    if _LEVEL_TO_INT.get(lvl, logging.INFO) >= logging.WARNING:
+    if slack or _LEVEL_TO_INT.get(lvl, logging.INFO) >= logging.WARNING:
         _send_slack(event, lvl, fields)
 
 

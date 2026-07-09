@@ -27,6 +27,7 @@ htmlcov/
 data/*.db
 data/*.sqlite
 data/*.sqlite3
+data/heartbeat
 *.db-journal
 *.db-wal
 *.db-shm

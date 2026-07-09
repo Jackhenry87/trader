@@ -151,6 +151,23 @@ State (SQLite) persists in the `./data` volume, so restarts don't lose positions
 or the processed-filings history. On boot the bot reconciles its DB against
 Alpaca's real positions and logs any drift.
 
+### Health & alerts
+
+- **Container healthcheck.** The scheduler writes a heartbeat every minute; the
+  image's `HEALTHCHECK` fails if it goes stale (>180s). `docker compose ps` shows
+  `healthy`/`unhealthy`, and a wedged scheduler is restarted by the
+  `restart: unless-stopped` policy. Check manually with:
+  ```bash
+  docker compose exec trader python -m src.main health
+  ```
+- **Slack alerts (optional but recommended).** Set `SLACK_WEBHOOK_URL` in `.env`
+  and you'll get pushed messages on: startup, every fill, every exit, every guard
+  trip, and every job exception. If unset, these still go to the JSON logs.
+- **Daily dead-man's switch.** Once a day (08:00 ET by default,
+  `DAILY_HEARTBEAT_HOUR`) the bot sends a "still alive" ping with equity, cash,
+  and open-position count. If you *stop* seeing it, the bot is down — that
+  absence is the alert. Requires `SLACK_WEBHOOK_URL`.
+
 ## 7. Flip to real paper orders (when you're ready)
 
 After you've watched at least one post-open cycle log "would buy" lines and
