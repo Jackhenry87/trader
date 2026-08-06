@@ -194,6 +194,67 @@ You can also drive `run_backtest.run_backtest(buys, price_frames, settings)`
 directly with injected price frames for offline/deterministic testing (see
 `tests/test_backtest.py`).
 
+## Mean-reversion backtest (separate strategy)
+
+`backtest/mean_reversion.py` is a standalone z-score (Bollinger) mean-reversion
+harness, unrelated to the insider signal. Enter long when
+`z = (close - rolling_mean) / rolling_std` falls to `-entry_z`; exit when it
+returns to `exit_z`, or on a hard stop, or at `max_hold_days`.
+
+```bash
+python -m backtest.mean_reversion --tickers SPY,QQQ,IWM \
+    --start 2023-01-01 --end 2025-01-01 --lookback 20 --entry-z 2.0
+
+# Grid instead of a single run — see "read the sweep pessimistically" below.
+python -m backtest.mean_reversion --tickers SPY,QQQ --start 2023-01-01 \
+    --end 2025-01-01 --sweep
+```
+
+Needs Alpaca keys (it reuses `_fetch_price_frames`). Or call
+`run_mean_reversion(price_frames, params)` directly with your own frames.
+
+### Bias controls
+
+Mean-reversion backtests flatter themselves easily, because entries land on
+local lows by construction. This harness refuses the three shortcuts:
+
+- **No same-bar fill.** The z-score for day *i* is knowable only once day *i*
+  closes, so fills happen at the **open of day i+1** — entries and exits alike.
+- **Open positions are closed** at the last available close, tagged `eod_data`.
+  Dropping them would delete exactly the positions that never reverted.
+- **Costs are charged both sides** (default 0.1% commission + 0.05% slippage =
+  0.30% round trip). Mean reversion trades often; a zero-cost run is fiction.
+
+Stops check the intraday `low`, including on the **entry bar itself**, and a
+stop beats a same-bar exit signal.
+
+### Read the sweep pessimistically
+
+`--sweep` runs a parameter grid and prints how many cells were profitable. This
+is a curve-fit detector, not an optimiser. On a synthetic **random walk with no
+structure whatsoever**, 3 of 9 cells came out profitable, the best showing
++1.77% expectancy per trade — an edge that does not exist. If only a few cells
+work, that is noise; a real effect is broadly positive across neighbours.
+
+### Two things the metrics will not tell you
+
+- **`total_return_pct` is not a portfolio return.** It inherits `summarize()`'s
+  sequential compounding, which reinvests 100% of equity into each trade in
+  turn. On a strongly profitable series it produces absurd numbers (a synthetic
+  run printed 1,121,259%). Use **`expectancy_pct`** and `win_rate_pct` — and
+  compare against `buy_and_hold_avg_pct`.
+- **A high win rate is not an edge.** On the random walk the strategy won
+  **61.2%** of trades and still lost money — expectancy **−0.315%** per trade,
+  because the losers were bigger than the winners. That is the mean-reversion
+  payoff profile in one line, and it is why win rate alone is an advertisement
+  rather than a result.
+
+Validated in `tests/test_mean_reversion.py` against series with known ground
+truth: an Ornstein–Uhlenbeck process (it should and does find the edge), a
+driftless random walk (it should not, and does not), and a downtrend (it should
+lose, and does). That confirms the *implementation* is honest. It says nothing
+about whether real markets mean-revert.
+
 ## State & persistence
 
 SQLite (`data/trader.db`) holds `processed_filings`, `signals`, `positions`, and
