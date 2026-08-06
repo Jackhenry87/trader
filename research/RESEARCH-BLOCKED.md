@@ -94,9 +94,13 @@ only so the search isn't repeated from zero.
   costs, finite-bankroll survival). Reported outcome: **four of six candidates
   REFUTED** (oscillator, volume, calendar, candlestick); trend and a momentum
   benchmark inconclusive. Methods cited include stationary-bootstrap CIs and
-  Benjamini–Yekutieli control. *If this holds at source, it is the single most
-  important item here — it is a 2026 refutation of most of the retail signal
-  space, and it is unaffiliated with any vendor.*
+  Benjamini–Yekutieli control.
+  **→ Followed up in `raw/retail-traders-ruin-2607.20093.md`.**
+  **Correction:** an earlier note in this file described this paper as
+  "unaffiliated with any vendor." That is wrong. The author's firm, Hecatus
+  Research, **sells trading signals and algo-trading services**, and therefore
+  benefits commercially from a finding that free, popular retail signals do not
+  work. The paper is not independent corroboration and needs its own.
 - **arXiv 2512.15732, "The Red Queen's Trap: Limits of Deep Evolution in
   High-Frequency Trading."** Not yet examined.
 - An **"AI-Assisted Audit of Candle-Based Binance Spot Timing Models"** paper
