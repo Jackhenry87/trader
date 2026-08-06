@@ -259,6 +259,32 @@ uv run --directory mcp/tradingview-mcp pytest -q     # 227 upstream tests
 The vendored tree is excluded from this repo's `ruff` and `black` config, and
 the root `pytest` run (`testpaths = ["tests"]`) does not collect its tests.
 
+### ⚠️ Its backtest numbers are optimistic — more so than ours
+
+`backtest_strategy` / `compare_strategies` / `walk_forward_backtest_strategy`
+are upstream code we have not modified. They do model transaction costs by
+default (0.1% commission + 0.05% slippage per side), but four issues push the
+reported numbers up. Read them before trusting any leaderboard:
+
+- **Sharpe is inflated several-fold.** `_calc_metrics` annualizes *per-trade*
+  returns by a *per-bar* factor (`√252` for `1d`). A 12-trades-per-year strategy
+  gets scaled by √252 instead of √12. Measured: a true Sharpe of **0.71 reports
+  as 4.9**. Treat any Sharpe from these tools as unitless ordering, not a level.
+- **Open positions vanish.** The strategy loops never flush a position still
+  open at the end of the window. A strategy that bought into an 84% crash and is
+  still holding returns an *empty* trade list — no loss recorded anywhere. For
+  mean-reversion strategies (RSI, Bollinger) this systematically deletes losers,
+  since an unreverted position is exactly a losing one.
+- **Same-bar signal and fill.** Entries fill at the very `close[i]` that
+  generated the signal — knowable only after that bar closed. Real fills happen
+  at `open[i+1]`. Again biased favorably for mean-reversion entries.
+- **Drawdown is close-to-close only.** `max_drawdown_pct` is measured at trade
+  exits, so intra-trade drawdown is invisible, and `calmar_ratio` divides
+  *total* (not annualized) return by that understated figure.
+
+Our own `backtest/` harness has its own idealized-fill caveat above; this one is
+looser still. Same rule applies, harder: **backtest ≥ paper ≥ live.**
+
 ## Testing
 
 ```bash

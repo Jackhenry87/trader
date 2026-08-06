@@ -1,6 +1,10 @@
 .git
 .venv
+**/.venv
 venv
+# Vendored MCP server: never copied into the image, and its uv-provisioned
+# .venv is ~160MB. Keep the whole tree out of the build context.
+mcp
 data
 *.db
 *.db-*
