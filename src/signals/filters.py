@@ -100,8 +100,17 @@ def passes_liquidity(
     price: float | None,
     avg_dollar_volume: float | None,
     settings: Settings,
+    data_error: str | None = None,
 ) -> tuple[bool, str | None]:
-    """Liquidity screen. Returns (ok, reject_reason)."""
+    """Liquidity screen. Returns (ok, reject_reason).
+
+    ``data_error`` is set when the market-data lookup itself failed. That is not
+    a liquidity verdict — we never assessed the name — so it gets its own reason
+    string. Callers should treat it as a system fault (see
+    ``LiquiditySnapshot.data_unavailable``), not a routine rejection.
+    """
+    if data_error is not None:
+        return False, f"data_unavailable({data_error})"
     if price is None:
         return False, "no_price"
     if price < settings.min_price:

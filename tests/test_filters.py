@@ -82,6 +82,33 @@ def test_liquidity_screen():
     assert passes_liquidity(10.0, None, s)[0] is False
 
 
+def test_liquidity_distinguishes_data_fault_from_thin_name():
+    """A failed lookup must not read as a liquidity verdict.
+
+    Both cases carry price=None/volume=None, so before this the two were
+    indistinguishable and a broken feed looked exactly like an illiquid name.
+    """
+    from config.settings import Settings
+
+    s = Settings(min_price=5.0, min_avg_dollar_volume=1_000_000.0)
+
+    # Feed answered, nothing there -> routine rejection.
+    ok, reason = passes_liquidity(None, None, s)
+    assert ok is False
+    assert reason == "no_price"
+
+    # Lookup itself failed -> distinct, attributable reason.
+    ok, reason = passes_liquidity(None, None, s, data_error="401 unauthorized")
+    assert ok is False
+    assert reason.startswith("data_unavailable")
+    assert "401 unauthorized" in reason
+
+    # A data fault outranks every other check, even with usable-looking numbers.
+    ok, reason = passes_liquidity(10.0, 5_000_000, s, data_error="connection reset")
+    assert ok is False
+    assert reason.startswith("data_unavailable")
+
+
 def test_dedupe_against_holdings(settings):
     buys = [
         make_buy("HELD", "Alice", shares=2000, price=30.0),

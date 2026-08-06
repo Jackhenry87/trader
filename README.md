@@ -208,6 +208,27 @@ Every meaningful event is a structured JSON log line. Notable events (fills,
 exits, guard trips, exceptions) additionally push to Slack if
 `SLACK_WEBHOOK_URL` is set; otherwise notifications fall back to log-only.
 
+### A broken data feed is an incident, not a quiet day
+
+The liquidity screen distinguishes **"we could not ask"** from **"we asked and
+the name is thin."** Both leave price and volume unset, but they mean opposite
+things, and conflating them is how a misconfigured account looks healthy:
+
+| Situation | `LiquiditySnapshot` | Event | Level |
+| --------- | ------------------- | ----- | ----- |
+| Feed answered, name is thin | `price`/`volume` set | `signal_rejected` (`illiquid`) | info |
+| Feed answered, no bars for symbol | both `None`, `error=None` | `signal_rejected` (`no_price`) | info |
+| Lookup **failed** (bad keys, unentitled SIP, network) | both `None`, `error` set | `signal_rejected` (`data_unavailable(...)`) | **error** |
+
+A data fault is logged at `error`, so it reaches Slack, and the run additionally
+emits one `liquidity_data_unavailable` summary naming every ticker that was
+dropped without ever being screened. Without that, an outage mutes every signal
+and the run reports "0 queued" — indistinguishable from a genuinely quiet day.
+
+If you see that event, check `ALPACA_API_KEY`/`ALPACA_SECRET_KEY` and
+`ALPACA_DATA_FEED` (`sip` requires a paid subscription; `iex` is the free
+default).
+
 ### Alpaca Request IDs
 
 Every Alpaca Trading API response carries a unique `X-Request-ID` header, and

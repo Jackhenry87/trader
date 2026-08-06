@@ -50,17 +50,25 @@ def gather_and_queue(
         notify("signal_rejected", level="info", ticker=sig.ticker, reason=reason)
 
     queued: list[Signal] = []
+    data_unavailable: list[str] = []
     for sig in kept:
         if repo.has_queued_signal_for(sig.ticker):
             notify("signal_rejected", level="info", ticker=sig.ticker, reason="already_queued")
             continue
 
         snap = market.liquidity(sig.ticker)
-        ok, reason = passes_liquidity(snap.price, snap.avg_dollar_volume, settings)
+        ok, reason = passes_liquidity(
+            snap.price, snap.avg_dollar_volume, settings, data_error=snap.error
+        )
         if not ok:
+            # A data fault is a system problem, not a verdict on the name: log it
+            # at error level so it reaches the notification sink instead of
+            # blending into the routine rejection stream.
+            if snap.data_unavailable:
+                data_unavailable.append(sig.ticker)
             notify(
                 "signal_rejected",
-                level="info",
+                level="error" if snap.data_unavailable else "info",
                 ticker=sig.ticker,
                 reason=reason,
                 price=snap.price,
@@ -77,6 +85,24 @@ def gather_and_queue(
             kind=sig.kind.value,
             total_value_usd=round(sig.total_value_usd, 2),
             insiders=sig.distinct_insiders,
+        )
+
+    if data_unavailable:
+        # Without this the run ends "0 queued" and looks like a quiet day. Say
+        # plainly that these names were dropped un-screened, so a broken feed is
+        # never mistaken for an absence of signals.
+        notify(
+            "liquidity_data_unavailable",
+            level="error",
+            tickers=sorted(data_unavailable),
+            dropped=len(data_unavailable),
+            considered=len(kept),
+            queued=len(queued),
+            detail=(
+                "market-data lookups failed; these signals were dropped without a "
+                "liquidity assessment. Check Alpaca credentials and ALPACA_DATA_FEED "
+                "(SIP requires a paid subscription)."
+            ),
         )
     return queued
 

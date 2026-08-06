@@ -18,11 +18,24 @@ _log = get_logger("market_data")
 
 @dataclass(frozen=True)
 class LiquiditySnapshot:
-    """Latest price and trailing average dollar volume for one symbol."""
+    """Latest price and trailing average dollar volume for one symbol.
+
+    ``error`` separates *we could not ask* from *we asked and the name is thin*.
+    Both leave price/volume as None, but they mean opposite things: a data-feed
+    fault is a system problem that must be surfaced loudly, while an empty bar
+    set is a legitimate screen rejection. Without this field the two collapse
+    into the same silent "no qualifying signals" outcome.
+    """
 
     ticker: str
     price: float | None
     avg_dollar_volume: float | None
+    error: str | None = None
+
+    @property
+    def data_unavailable(self) -> bool:
+        """True when the lookup itself failed, rather than returning thin data."""
+        return self.error is not None
 
 
 class MarketData:
@@ -82,12 +95,25 @@ class MarketData:
                 feed=self._feed,
             )
             bars = self._client.get_stock_bars(req)
-            data = bars.data.get(ticker, []) if hasattr(bars, "data") else []
         except Exception as exc:  # noqa: BLE001
+            # Auth failure, unentitled feed (e.g. SIP without a subscription),
+            # or network fault. Not a liquidity verdict — flag it as such.
             _log.warning("liquidity_bars_failed", ticker=ticker, error=str(exc))
-            return LiquiditySnapshot(ticker, None, None)
+            return LiquiditySnapshot(ticker, None, None, error=str(exc))
 
+        if not hasattr(bars, "data"):
+            # Unexpected response shape — treat as a fault, not as "illiquid".
+            _log.warning(
+                "liquidity_bars_malformed", ticker=ticker, response_type=type(bars).__name__
+            )
+            return LiquiditySnapshot(
+                ticker, None, None, error=f"malformed bars response: {type(bars).__name__}"
+            )
+
+        data = bars.data.get(ticker, [])
         if not data:
+            # The feed answered and had nothing for this symbol — a real
+            # (non-fault) reason to reject: new listing, halted, or untraded.
             return LiquiditySnapshot(ticker, None, None)
 
         recent = data[-lookback_days:]
