@@ -230,6 +230,35 @@ docker compose run --rm trader signals --date 2024-05-10   # one-off
 State persists in the `./data` volume. `.env` supplies secrets. The image ships
 with `DRY_RUN=true` and live trading disabled.
 
+## TradingView MCP server (vendored)
+
+`mcp/tradingview-mcp/` vendors the upstream
+[tradingview-mcp](https://github.com/atilaahmettaner/tradingview-mcp) server
+(MIT, v0.8.0) — 37 MCP tools for TradingView screeners, technical indicators,
+Yahoo Finance quotes, sentiment, and strategy backtesting.
+
+It is a **research and analysis** surface only. It is completely separate from
+the trading path: nothing in `src/` imports it, and it cannot place orders. The
+bot's signals still come from EDGAR Form 4 alone.
+
+`.mcp.json` registers it for MCP clients that read project scope:
+
+```json
+{ "command": "uv", "args": ["run", "--directory", "mcp/tradingview-mcp", "tradingview-mcp", "stdio"] }
+```
+
+`uv run` provisions the server's own isolated environment from its `uv.lock` on
+first launch, so its dependency pins (which include a hard `tradingview-screener==3.0.0`
+and `mcp[cli]<2`) never mix with the bot's. Run it standalone with:
+
+```bash
+uv run --directory mcp/tradingview-mcp tradingview-mcp stdio
+uv run --directory mcp/tradingview-mcp pytest -q     # 227 upstream tests
+```
+
+The vendored tree is excluded from this repo's `ruff` and `black` config, and
+the root `pytest` run (`testpaths = ["tests"]`) does not collect its tests.
+
 ## Testing
 
 ```bash

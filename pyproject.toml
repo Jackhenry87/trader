@@ -37,10 +37,13 @@ include = ["config*", "src*", "backtest*"]
 [tool.black]
 line-length = 100
 target-version = ["py311"]
+extend-exclude = "^/mcp/"
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# Vendored third-party MCP server — upstream's code, not ours to reformat.
+extend-exclude = ["mcp"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "C4"]
