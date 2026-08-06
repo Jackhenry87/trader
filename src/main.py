@@ -231,6 +231,34 @@ def _daily_alive_ping(settings: Settings) -> None:
     )
 
 
+def cmd_report(args: argparse.Namespace, settings: Settings) -> None:
+    """Print the performance scorecard from persisted state. Read-only."""
+    import json
+
+    from src.report import build_report, format_report
+    from src.state.db import connect
+
+    # Marking to market is optional: without keys (or with a broken feed) the
+    # report still prints, and says which positions it could not mark rather
+    # than quietly showing them flat.
+    market = None
+    if not args.no_marks and settings.alpaca_api_key and settings.alpaca_secret_key:
+        try:
+            from src.broker.market_data import MarketData
+
+            market = MarketData(settings)
+        except Exception as exc:  # noqa: BLE001
+            print(f"warning: market data unavailable, positions will be unmarked ({exc})\n")
+
+    conn = connect(settings.db_path)
+    try:
+        rep = build_report(conn, market)
+    finally:
+        conn.close()
+
+    print(json.dumps(rep, indent=2) if args.json else format_report(rep))
+
+
 def cmd_health(args: argparse.Namespace, settings: Settings) -> None:
     """Exit 0 if the scheduler heartbeat is fresh, else 1 (for Docker HEALTHCHECK)."""
     import sys
@@ -301,6 +329,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_run = sub.add_parser("run", help="Start the APScheduler loop.")
     p_run.set_defaults(func=cmd_run)
+
+    p_rep = sub.add_parser("report", help="Print the performance scorecard. Read-only.")
+    p_rep.add_argument("--json", action="store_true", help="Machine-readable output.")
+    p_rep.add_argument(
+        "--no-marks", action="store_true", help="Skip live quotes; realized P/L only."
+    )
+    p_rep.set_defaults(func=cmd_report)
 
     p_health = sub.add_parser("health", help="Exit 0 if scheduler heartbeat is fresh (for Docker).")
     p_health.set_defaults(func=cmd_health)

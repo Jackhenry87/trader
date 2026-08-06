@@ -132,6 +132,28 @@ python -m src.main post-open --force    # run anyway (dry-run testing)
 With `DRY_RUN=true` these log intended orders and place nothing. Set
 `DRY_RUN=false` in `.env` to place real **paper** orders.
 
+### Check how it's doing
+
+```bash
+python -m src.main report              # scorecard, marks open positions to market
+python -m src.main report --no-marks   # realized P/L only, no quotes needed
+python -m src.main report --json       # machine-readable
+```
+
+Read-only. Pairs order legs into closed round trips and reports win rate,
+realized P/L, avg win vs avg loss, **expectancy per trade**, profit factor,
+average hold, and exits broken out by trigger — then open positions marked to
+market, and the signal funnel (filings processed, signals qualified, by status).
+
+Two deliberate behaviours:
+
+- **Expectancy is the headline, not win rate.** If most trades win while
+  expectancy is negative, the report says so outright. A win rate without a
+  payoff ratio is an advertisement, including when it is your own.
+- **Unmarked positions say `UNAVAILABLE`.** If a quote can't be fetched, the
+  position is never shown flat at its entry price — that would hide a real loss
+  behind a data outage. The report names how many positions it could not mark.
+
 ### Run the scheduler
 
 ```bash
