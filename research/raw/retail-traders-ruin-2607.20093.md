@@ -70,6 +70,50 @@ reproduced in available excerpts:
 - Exact test period
 - Per-family effect sizes, win rates, drawdowns
 
+## Replication repo — searched for, NOT found
+
+**GitHub is the one reachable channel in this environment.** Cloned the author's
+only public quant repo: **`adamd1985/quant_research`** (HEAD `64ee28d`,
+2026-07-01, "chore: final polish" — same month as the paper).
+
+**It does not contain the paper's replication code.** Grepped the full tree
+(notebooks, scripts, markdown) for every paper-specific term:
+
+| Search term | Hits |
+|---|---|
+| `retail trader` | 0 |
+| `benjamini` / `yekutieli` | 0 |
+| `equivalence test` / `claim-exclusion` | 0 |
+| `sell.in.may` | 0 |
+
+No arXiv or paper reference in `README.md`. The topically-closest file,
+`oscilators-quant.ipynb`, is a 21-cell explainer of APO/MACD/RSI republished
+from Medium — a tutorial, not a falsification study.
+
+**So the snippet claim that the paper "includes replication code and data" is
+uncorroborated.** I relayed that claim in an earlier turn; it is not supported
+by anything reachable. If replication material exists it is bundled with the
+arXiv submission itself, which is blocked.
+
+### One piece of weak corroboration in the repo's favour
+
+`papers/` holds the author's reference PDFs, and two of them are precisely the
+methods the paper's abstract claims to use:
+
+- `The Stationary Bootstrap.pdf` — the paper cites stationary-bootstrap CIs
+- `A_Test_for_Superior_Predictive_Ability.pdf` — Hansen's SPA test, the
+  multiplicity-control family
+- also: `The Deflated Sharpe Ratio.pdf`, `The Sharpe Ratio Efficient Frontier.pdf`
+
+And `portfolio_ml_trails_no_phacking_testing.ipynb` is explicitly about "Honest
+PSR, DSR, and SPA Tests" — i.e. avoiding false discovery from multiple trials.
+
+This does **not** verify a single result in the paper. What it does establish is
+that the author demonstrably works with the exact statistical toolkit the
+abstract describes, so the methodology description is plausible rather than
+something a search summary invented. Weak evidence, but real, and it is the
+only source-level corroboration obtained anywhere in this task.
+
 ## Conflict-of-interest assessment
 
 **Hecatus Research sells trading signals, AI-enabled algorithmic trading, and
