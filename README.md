@@ -277,6 +277,54 @@ driftless random walk (it should not, and does not), and a downtrend (it should
 lose, and does). That confirms the *implementation* is honest. It says nothing
 about whether real markets mean-revert.
 
+## Opening Range Breakout backtest (intraday)
+
+`backtest/opening_range.py`. Take the high/low of the first `range_minutes` of
+the session, go long on a break above (and/or short below), stop at the
+opposite side of the range, exit at the close. Never holds overnight.
+
+```bash
+python -m backtest.opening_range --tickers SPY,QQQ \
+    --start 2025-01-01 --end 2025-07-01 --range-minutes 15 --direction long
+
+python -m backtest.opening_range --tickers SPY --start 2025-01-01 \
+    --end 2025-07-01 --sweep          # grid over 5/15/30/60m x long/both
+```
+
+Needs Alpaca keys for intraday bars. Note the free **IEX feed has thinner
+intraday coverage than SIP**, which matters more for opening-range bars than
+for daily ones.
+
+### ⚠️ PDT makes this untradeable at small account sizes
+
+Every ORB trade is a same-session round trip — a **day trade**. Under $25k
+equity, FINRA caps you at **3 day trades per 5 rolling business days**. Alpaca
+paper simulates this.
+
+The metrics therefore report `day_trades` and `max_day_trades_in_5d`, and emit
+a `pdt_warning` when the limit is breached. A representative run over 22
+sessions peaked at **7 day trades in 5 business days** — more than double the
+cap. A strategy that is profitable but untradeable at your account size is not
+a strategy you can use, so this is reported alongside the returns rather than
+discovered after the account is restricted.
+
+### Bias controls
+
+Breakout backtests flatter themselves in one specific way — filling at the
+breakout level, which assumes a resting stop order got a perfect fill at the
+exact moment of fastest movement. This module refuses that:
+
+- **Fills on the bar *after* the signal**, at its open
+- **The entry bar's low counts against the stop**, so a breakout that fails
+  immediately doesn't get a free bar
+- **Stops beat targets** when one bar spans both
+- **Costs both sides** (0.30% round trip default). Opening spreads are the
+  widest of the day, so this is if anything generous
+- **Shorts are sign-corrected** — a short into a decline is a win
+
+Validated in `tests/test_opening_range.py` against sessions built to trend
+(profits), whipsaw (loses), and go flat (no trades).
+
 ## State & persistence
 
 SQLite (`data/trader.db`) holds `processed_filings`, `signals`, `positions`, and
