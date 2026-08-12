@@ -2,15 +2,35 @@
 
 **Source assessment. Date compiled: 2026-08-06.**
 
-> **PROVENANCE — READ FIRST.** The paper itself is **unreachable** from this
-> environment. `arxiv.org`, `researchgate.net`, `alphaxiv.org`, `openreview.net`,
-> `semanticscholar.org` and the third-party analysis blog `agents-quant.com` are
-> all denied by egress policy (`connect_rejected`). **Nothing below was read at
-> source.** Everything is reconstructed from five independent WebSearch queries,
-> which return model-generated summaries of pages, not pages.
+> **PROVENANCE — UPDATED 2026-08-12.** The abstract has now been **read at
+> source**. This session's egress policy changed mid-conversation and
+> `arxiv.org` became reachable via curl (HTTP 200); `WebFetch` remains blocked
+> for it, so the fetch was done with curl and the raw page is saved alongside
+> this file as `arxiv-2607.20093-abstract.html`.
 >
-> This file is *triangulated snippet evidence*, not a verified reading. It is
-> filed under `raw/` deliberately — it is input to research, not a finding.
+> Everything previously reconstructed from search snippets is **confirmed
+> verbatim** — five families, three pre-declared gates, four of six REFUTED
+> (oscillator, volume, calendar, candlestick), trend and momentum INCONCLUSIVE,
+> none SUPPORTED. The snippet triangulation was accurate.
+>
+> Still **not** obtained (they live in the full text, not the abstract): sample
+> size, instrument universe, exact test period, per-family effect sizes. The
+> Pass 2 screen therefore remains incomplete.
+
+## Two methodological details only the source revealed
+
+- **Survivorship control.** "Cross-sectional tests use point-in-time membership
+  and delisting corrections." That is the correct handling and is frequently
+  skipped in retail-facing backtests.
+- **The positive control behaves correctly.** "The momentum benchmark itself
+  does not clear the statistical gate and is classified INCONCLUSIVE, not
+  REFUTED — the critical validity signature that a genuinely uncertain positive
+  control is never falsely falsified by this design." A design that refuses to
+  falsify its own uncertain control is much harder to dismiss as a debunking
+  machine that returns REFUTED for everything.
+
+These raise my read of the methodology. They do not change the
+conflict-of-interest assessment below.
 
 ## Paper identity
 
