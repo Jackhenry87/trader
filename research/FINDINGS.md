@@ -95,6 +95,64 @@ drawdown. Documented in the README.
 
 ---
 
+## Opening Range Breakout
+
+**Claimed win rate:** n/a — measured 20.4% over 60 sessions, 142 trades,
+SPY/QQQ/IWM, 5-minute bars, 2026-05-20 → 2026-08-14 (Yahoo)
+**Verdict: NO EDGE — uniformly negative, and untradeable at retail size anyway**
+
+### Mechanism
+Take the first 15 minutes' high/low, buy the break above, stop at the range low,
+exit at the close. The premise is that overnight information resolves at the
+open and the range acts as a reference level attracting resting orders.
+
+### Payoff profile
+
+| Metric | Value |
+|---|---|
+| Trades | 142 |
+| Win rate | **20.4%** |
+| Expectancy | **−0.39% / trade** |
+| Avg hold | 187 minutes |
+| Exits | 80 stop, 62 session_close |
+
+Unlike mean reversion, this one does not even flatter itself first:
+
+- **Sweep: 0 of 8 cells positive.** Every combination of 5/15/30/60-minute range
+  × long/both is negative, in a tight band of −0.33% to −0.42%.
+- **Out-of-sample: negative in both halves** (−0.44% first 30 sessions, −0.33%
+  second 30). Consistent, not regime-dependent.
+- **Independence: 54 distinct entry dates for 142 trades; 97% share a date with
+  another ticker.** The three ETFs break out together almost every time, so this
+  is closer to ~54 independent observations than 142.
+
+### The catch — friction is the whole story
+
+| Cost assumption | Win rate | Expectancy |
+|---|---|---|
+| Zero cost (gross signal) | 35.9% | **−0.09%** |
+| Realistic (0.30% round trip) | 20.4% | **−0.39%** |
+| Pessimistic (0.60% round trip) | 9.9% | **−0.69%** |
+
+Gross of costs the signal is roughly a coin flip with a slight negative tilt.
+**Transaction costs are what turn "nothing" into "reliably losing."** That is
+the more precise finding than the raw win rate: there is no edge to erode, and
+trading it frequently converts a null into a steady drain.
+
+### And it cannot be traded at this account size regardless
+
+`max_day_trades_in_5d: 15` against a regulatory cap of **3** for accounts under
+$25k. Every ORB trade is a same-session round trip.
+
+### Evidence quality
+
+Backtested only. **Small sample and a single regime** — Yahoo caps 5-minute
+history at 60 days, so 2018 Q4, March 2020 and 2022 could not be tested here as
+they were for mean reversion. The consistency across all 8 parameter cells and
+both halves is what carries the conclusion, not the sample length.
+
+---
+
 ## What the search did not find
 
 Across this project, **four strategy families were examined** — insider-copy
@@ -106,10 +164,12 @@ survives scrutiny.**
   then failed out-of-sample (−0.291% in 2018–2022) and lost money in every
   stress regime tested. It also underperformed simply holding the ETFs by a
   wide margin (+204% buy-and-hold).
-- **Opening-range breakout** is untestable at retail size before it is
-  untestable statistically: every trade is a day trade, and a representative
-  run peaked at **7 day trades in 5 business days** against a regulatory cap of
-  3 for accounts under $25k.
+- **Opening-range breakout** was tested on real 5-minute data and showed **no
+  edge at all**: 20.4% win rate, −0.39% expectancy, **0 of 8 parameter cells
+  positive**, negative in both halves of the split. Gross of costs it is a
+  slight-negative coin flip (−0.09%), so friction is what makes it a reliable
+  loser. It is also untradeable at retail size — 15 day trades in 5 business
+  days against a cap of 3.
 - **Insider-copy** has zero closed trades. No evidence either way yet.
 - **Prediction-market arbitrage** was never verified past search snippets, and
   its documented failure mode — correlated settlement divergence between venues
