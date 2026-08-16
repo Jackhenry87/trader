@@ -44,7 +44,7 @@ pure random walk.
 
 | Period | Trades | Win rate | Expectancy |
 |---|---|---|---|
-| **Train 2018–2022** | 192 | 63.0% | **−0.291%** |
+| **Train 2018–2022** | 192 | 64.1% | **−0.222%** |
 | **Test 2023–2026** | 121 | 76.9% | **+1.585%** |
 
 The strategy **lost money over the first five years** and made it all back in
@@ -55,16 +55,23 @@ winning one. That is not an edge; it is a regime.
 
 | Regime | Trades | Win rate | Expectancy |
 |---|---|---|---|
-| 2018 Q4 selloff | 10 | 50.0% | **−1.549%** |
-| **March 2020 crash** | 14 | 35.7% | **−6.337%** |
-| 2022 bear market | 38 | 55.3% | **−0.709%** |
-| 2024–2026 calm | 83 | 78.3% | **+1.676%** |
+| 2018 Q4 selloff | 17 | 35.3% | **−0.799%** |
+| **COVID crash 2020** | 21 | 19.0% | **−9.504%** |
+| 2022 bear market | 43 | 58.1% | **−0.457%** |
+| 2023+ recovery | 121 | 76.9% | **+1.585%** |
+
+> **Corrected 2026-08-12.** An earlier version of this table reported −6.337%
+> for 2020 and −0.291% for the train half. Those came from ad-hoc scripts that
+> sliced the *price frames* per regime, which truncated the 20-day indicator
+> warmup at each boundary and silently dropped trades. `backtest/validate.py`
+> partitions the *same* trade set by entry date instead, which is correct. The
+> crisis losses are worse than first reported.
 
 Negative in **every** stress period; positive only in the calm one. This is the
 textbook short-optionality profile the strategy's high win rate implies: many
 small wins buying dips, then a large loss when a dip keeps going. March 2020
-cost **−6.3% per trade** — thirteen times the headline expectancy, wiping out
-roughly thirteen winners per loser.
+cost **−9.5% per trade** at a 19% win rate — twenty times the headline
+expectancy, wiping out roughly twenty winners per loser.
 
 The tail risk being absorbed is *gap risk*: mean reversion assumes dislocations
 revert, and in a crash they do not.
@@ -161,7 +168,7 @@ market arbitrage. **None has demonstrated a positive-expectancy edge that
 survives scrutiny.**
 
 - **Mean reversion** produced a 69% win rate and positive headline expectancy,
-  then failed out-of-sample (−0.291% in 2018–2022) and lost money in every
+  then failed out-of-sample (−0.222% in 2018–2022) and lost money in every
   stress regime tested. It also underperformed simply holding the ETFs by a
   wide margin (+204% buy-and-hold).
 - **Opening-range breakout** was tested on real 5-minute data and showed **no
