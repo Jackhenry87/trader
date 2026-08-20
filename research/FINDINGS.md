@@ -160,6 +160,85 @@ both halves is what carries the conclusion, not the sample length.
 
 ---
 
+## Insider-Copy (SEC Form 4 code-P buys)
+
+**Measured:** 54.9% win rate over 91 trades, 91 US tickers, signals from 5
+sampled EDGAR filing days (2025-01-15, 2025-08-12, 2025-10-14, 2025-12-09,
+2026-02-10). Prices from Yahoo; exits are the bot's own 10% trailing / 15% hard
+/ 20-day max hold.
+**Verdict: INSUFFICIENT EVIDENCE, leaning negative — fails out-of-sample on a
+badly underpowered sample**
+
+### Mechanism
+Corporate insiders buying their own stock on the open market (transaction code
+`P`) have an information advantage. Cluster buying — several insiders in a short
+window — carries a modest documented tilt in the literature.
+
+### Payoff profile — the best-looking headline in this project
+
+| Metric | Value |
+|---|---|
+| Trades | 91 |
+| Win rate | 54.9% |
+| **Expectancy** | **+2.444% / trade** |
+| Profit factor | **2.05** |
+| Avg win | +8.692% |
+| Avg loss | −5.176% |
+| Exits | 46 trailing_stop, 42 max_hold, 3 hard_stop |
+
+This is the profile you would actually want: a modest win rate carried by a
+1.68:1 payoff ratio, rather than a high win rate hiding fat losses. It is the
+opposite shape to mean reversion, and on its face the most promising result
+found anywhere in this project.
+
+### The catch #1 — it fails out-of-sample, like everything else
+
+| Period | Trades | Win rate | Expectancy |
+|---|---|---|---|
+| Train (to 2025-10-06) | 45 | 66.7% | **+5.338%** |
+| Test (from 2025-10-06) | 46 | 43.5% | **−0.387%** |
+
+The entire +2.444% comes from the first half. The second half is negative.
+
+### The catch #2 — the sample is far thinner than 91 trades suggests
+
+| | |
+|---|---|
+| Distinct entry dates | **23** for 91 trades |
+| Trades sharing a date | **89%** |
+| Worst single day | **15 simultaneous entries** |
+
+This is the weakest independence of the three strategies tested — worse than
+ORB's 54 dates and mean reversion's 182. **Effective sample size is roughly 23,
+not 91.** Each half of the out-of-sample split therefore rests on ~11 effective
+observations, which is not enough to conclude much in either direction.
+
+The clustering is structural, not an artifact of sampling: insiders file in
+bursts after earnings windows open, so signals arrive together and the strategy
+takes many positions on the same day with no diversification.
+
+### The catch #3 — no crisis coverage at all
+
+Every trade falls in the 2023+ recovery regime. Sampling only 2025–2026 filing
+days means 2018 Q4, March 2020 and 2022 are untested here. The regime that
+broke mean reversion was never sampled.
+
+### Evidence quality
+
+Backtested, real EDGAR filings and real prices, but **the thinnest sample in
+this project and the least regime coverage.** 1,033 raw P-buys were parsed from
+5 filing days; 95 qualified (70 SIZE, 25 CLUSTER); 91 had usable price history.
+
+A fair backtest needs months of *contiguous* filings — sampling isolated days
+also limits cluster detection to same-day filings, so CLUSTER signals are
+undercounted. That was not feasible here: EDGAR's rate limit puts a full day at
+3–9 minutes and a single day can carry 7,000+ Form 4s.
+
+**This result should not be read as "insider-copy fails."** It should be read as
+"this test was too small to tell, and what it did show was not encouraging."
+
+---
+
 ## What the search did not find
 
 Across this project, **four strategy families were examined** — insider-copy
@@ -177,7 +256,11 @@ survives scrutiny.**
   slight-negative coin flip (−0.09%), so friction is what makes it a reliable
   loser. It is also untradeable at retail size — 15 day trades in 5 business
   days against a cap of 3.
-- **Insider-copy** has zero closed trades. No evidence either way yet.
+- **Insider-copy** was tested on real Form 4 filings and produced the best
+  headline in the project — +2.444% expectancy, 2.05 profit factor, a healthy
+  1.68:1 payoff ratio — then **failed the same out-of-sample split** (+5.338%
+  train, −0.387% test). Its 91 trades fall on just 23 distinct dates, so the
+  effective sample is ~23 and neither half proves much.
 - **Prediction-market arbitrage** was never verified past search snippets, and
   its documented failure mode — correlated settlement divergence between venues
   — is the same shape as the tail risk found here.
