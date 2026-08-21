@@ -10,6 +10,30 @@ cloud dev container. Below is the minimal, reliable way to run it unattended.
 
 ---
 
+## Fastest path: the bootstrap script
+
+Once you have a fresh Ubuntu VM and can SSH into it, this does the whole host
+setup in one go — Docker, clone, `.env` scaffold, build, and the read-only
+smoke test:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Jackhenry87/trader/claude/add-mcp-scteyn/scripts/bootstrap-host.sh -o bootstrap.sh
+bash bootstrap.sh https://github.com/Jackhenry87/trader.git
+```
+
+It is idempotent, so re-run it freely. On the first run it creates `.env` and
+**stops** so you can fill in your keys; run it again afterwards and it builds and
+smoke-tests. It refuses to continue if a required key is blank, rather than
+letting you discover that as a confusing auth error later.
+
+It deliberately **does not start the scheduler**. It leaves you verified and in
+dry-run, and the last step is yours by hand. It never touches `ALLOW_LIVE` or
+`CONFIRM_LIVE`.
+
+The sections below are the same steps done manually, plus day-2 operations.
+
+---
+
 ## Quickstart: Oracle Cloud "Always Free" ARM (recommended, $0)
 
 Oracle's Always Free tier includes an Ampere A1 (ARM64) VM that costs nothing,
