@@ -107,6 +107,13 @@ python -m src.main signals --date 2024-05-10
 # add --max-filings 40 for a quick capped smoke test
 ```
 
+> `--max-filings N` truncates the daily index, which is ordered by CIK/company,
+> so a capped run is **alphabetically biased** — you will see a cluster of
+> similar tickers rather than a representative sample. Fine for proving the
+> pipeline works; not a sample to judge signal quality from. Omit it for a real
+> run (a busy day can carry 7,000+ Form 4s and take several minutes at the SEC
+> rate limit).
+
 Prints every qualifying `P`-buy signal for the date. No Alpaca, no orders.
 
 ### Phase 2 — account (read-only, needs Alpaca paper keys)
