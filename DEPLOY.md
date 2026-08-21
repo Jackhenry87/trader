@@ -46,7 +46,7 @@ sudo usermod -aG docker $USER && newgrp docker
 
 # Code
 git clone <your repo url> trader && cd trader
-git checkout claude/insider-copy-trading-bot-7f125s
+git checkout claude/add-mcp-scteyn
 
 # Secrets (never committed) — fill in SEC_USER_AGENT + your PAPER keys
 cp .env.example .env && nano .env
@@ -111,7 +111,7 @@ sudo usermod -aG docker $USER && newgrp docker
 
 # Code
 git clone <your repo url> trader && cd trader
-git checkout claude/insider-copy-trading-bot-7f125s
+git checkout claude/add-mcp-scteyn
 
 # Secrets (never committed) — fill in SEC_USER_AGENT + your PAPER keys
 cp .env.example .env && nano .env
@@ -152,8 +152,43 @@ curl -fsSL https://get.docker.com | sh
 ```bash
 git clone <your repo url> trader
 cd trader
-git checkout claude/insider-copy-trading-bot-7f125s
+git checkout claude/add-mcp-scteyn
 ```
+
+## 2b. Checking on it once it's up
+
+Three commands, all read-only and safe to run against a live scheduler:
+
+```bash
+docker compose exec trader python -m src.main report      # performance scorecard
+docker compose exec trader python -m src.main health      # heartbeat freshness
+docker compose logs --tail=100 trader                     # recent structured logs
+```
+
+`report` is the one that matters. It pairs order legs into closed round trips and
+leads with **expectancy per trade**, not win rate — and it says so in words when
+most trades win while expectancy is negative.
+
+### Reading an empty report
+
+For the first few weeks `report` will show no closed trades. That is normal —
+qualifying cluster buys are a handful a week and the max hold is 20 days. Use the
+**signal funnel** at the bottom to tell healthy silence from a broken pipeline:
+
+| Funnel shows | Means |
+| --- | --- |
+| `filings processed: 0` after a post-close run | EDGAR ingestion is broken — check `SEC_USER_AGENT` |
+| `filings processed: 500+`, `signals qualified: 0` | Working correctly. Most days genuinely have nothing |
+| signals qualified but none queued | Check the logs for `signal_rejected` reasons |
+
+### The one alert you must not ignore
+
+A `liquidity_data_unavailable` event (error level, so it reaches Slack) means
+market-data lookups failed and those signals were dropped **without ever being
+screened**. Before this existed, a broken feed and a quiet market produced
+identical output — "0 queued" — so an outage could mute the bot for weeks
+unnoticed. If you see it, check `ALPACA_API_KEY`/`ALPACA_SECRET_KEY` and
+`ALPACA_DATA_FEED` (`sip` needs a paid subscription; `iex` is the free default).
 
 ## 3. Create `.env` on the host (never commit it)
 
